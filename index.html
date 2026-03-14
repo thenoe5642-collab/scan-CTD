@@ -789,35 +789,35 @@
         }
         async function startVideo() {
             try {
-                const stream = await navigator.mediaDevices.getUserMedia({ video: true });
+                const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'user' }, audio: false });
                 const video = document.getElementById('video');
                 video.srcObject = stream;
-                video.onplay = () => {
-                    document.getElementById('video-loader').style.display = 'none';
-                    document.getElementById('video-wrapper').classList.remove('hidden');
-                    const overlay = document.getElementById('overlay');
-                    const displaySize = { width: video.clientWidth, height: video.clientHeight };
-                    faceapi.matchDimensions(overlay, displaySize);
-                    recognitionInterval = setInterval(async () => {
-                        if (!isScanning) return;
-                        const detections = await faceapi.detectAllFaces(video).withFaceLandmarks().withFaceDescriptors();
-                        const resizedDetections = faceapi.resizeResults(detections, displaySize);
-                        overlay.getContext('2d').clearRect(0, 0, overlay.width, overlay.height);
-                        if (faceMatcher) {
-                            resizedDetections.forEach(d => {
-                                const bestMatch = faceMatcher.findBestMatch(d.descriptor);
-                                new faceapi.draw.DrawBox(d.detection.box, { label: bestMatch.toString() }).draw(overlay);
-                                if (bestMatch.label !== 'unknown') {
-                                    const student = students.find(s => s.name === bestMatch.label);
-                                    if (student && !checkedInToday.has(String(student.studentid))) handleRecognition(student);
-                                }
-                            });
-                        }
-                    }, 300);
-                };
+                await video.play();
+                document.getElementById('video-loader').style.display = 'none';
+                document.getElementById('video-wrapper').classList.remove('hidden');
+                const overlay = document.getElementById('overlay');
+                const displaySize = { width: video.clientWidth, height: video.clientHeight };
+                faceapi.matchDimensions(overlay, displaySize);
+                recognitionInterval = setInterval(async () => {
+                    if (!isScanning) return;
+                    const detections = await faceapi.detectAllFaces(video).withFaceLandmarks().withFaceDescriptors();
+                    const resizedDetections = faceapi.resizeResults(detections, displaySize);
+                    overlay.getContext('2d').clearRect(0, 0, overlay.width, overlay.height);
+                    if (faceMatcher) {
+                        resizedDetections.forEach(d => {
+                            const bestMatch = faceMatcher.findBestMatch(d.descriptor);
+                            new faceapi.draw.DrawBox(d.detection.box, { label: bestMatch.toString() }).draw(overlay);
+                            if (bestMatch.label !== 'unknown') {
+                                const student = students.find(s => s.name === bestMatch.label);
+                                if (student && !checkedInToday.has(String(student.studentid))) handleRecognition(student);
+                            }
+                        });
+                    }
+                }, 300);
             } catch (err) {
-                document.getElementById('video-loading-text').innerText = 'ไม่สามารถเปิดกล้องได้!';
-                alert(`ไม่สามารถเปิดกล้องได้: ${err.name}`);
+                document.getElementById('video-loading-text').innerText = 'ไม่สามารถเปิดกล้องได้: ' + (err.message || err.name || 'Unknown');
+                console.error('Camera error', err);
+                alert(`ไม่สามารถเปิดกล้องได้: ${(err.message || err.name || 'Unknown')}`);
                 stopScanning(false);
             }
         }
